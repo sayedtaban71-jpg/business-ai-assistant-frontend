@@ -182,7 +182,7 @@ export function SideBarLayout() {
 										key={contact.id}
 										// onClick={() => setSelectedCompany(company)}
 										className={`flex items-center space-x-2 p-2 rounded-lg cursor-pointer transition-colors ${
-											selectedCompanyId === contact.id
+											selectedCompany.id === contact.id
 												? 'bg-blue-100 text-blue-700'
 												: 'hover:bg-gray-100 text-gray-700'
 										}`}

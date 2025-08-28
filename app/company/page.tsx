@@ -6,6 +6,7 @@ import { Company } from '@/types';
 import { MainDashboard } from '@/components/dashboard/MainDashboard';
 import {ProtectedRoute} from "@/components/auth/ProtectedRoute";
 import {AddCompanyDialog} from '@/components/dashboard/AddCompanyDialog';
+import {CompanyAdditionOptions} from '@/components/dashboard/CompanyAdditionOptions';
 import {useAuth} from "@/hooks/useAuth";
 import {useAppState} from "@/hooks/useAppState";
 import {OnboardingModal} from "@/components/onboarding/OnboardingModal";
@@ -23,7 +24,8 @@ function CompanyContent() {
 	const {companies, setCompanies, addCompany, setContacts, selectedCompany, setSelectedCompany, setDashboards, setCurrentDashboard} = useAppState();
 	const { showOnboarding, saveOnboardingData } = useAuth();
 	const [isDropdownOpen, setIsDropdownOpen] = useState(false);
-	const [isModalOpen, setIsModalOpen] = useState(false);
+	const [isOptionsModalOpen, setIsOptionsModalOpen] = useState(false);
+	const [isManualModalOpen, setIsManualModalOpen] = useState(false);
 	// const [companies, setCompanies] = useState<Company[]>([]);
 
 	useEffect(() => {
@@ -56,7 +58,7 @@ function CompanyContent() {
 	};
 
 	const handleManualClick = () => {
-		setIsModalOpen(true);
+		setIsManualModalOpen(true);
 		setIsDropdownOpen(false);
 	};
 
@@ -102,16 +104,10 @@ function CompanyContent() {
                  shadow-lg z-10">
 									<div>
 										<button
-											onClick={handleManualClick}
+											onClick={() => setIsOptionsModalOpen(true)}
 											className="w-full px-4 py-3 text-left text-white bg-blue-500 hover:bg-blue-600 transition-colors duration-200"
 										>
-											Manually
-										</button>
-										<button className="mt-2 w-full px-4 py-3 text-left text-white bg-blue-500 hover:bg-blue-600 transition-colors duration-200">
-											CSV Upload
-										</button>
-										<button className="mt-2 w-full px-4 py-3 text-left text-white bg-blue-500 hover:bg-blue-600 transition-colors duration-200">
-											Connect CRM
+											Add Company
 										</button>
 									</div>
 								</div>
@@ -123,10 +119,16 @@ function CompanyContent() {
 
 			<OnboardingModal isOpen={showOnboarding} onComplete={saveOnboardingData}/>
 
-			{/* Add Company Modal - always available */}
+			{/* Company Addition Options Modal */}
+			<CompanyAdditionOptions
+				isOpen={isOptionsModalOpen}
+				onClose={() => setIsOptionsModalOpen(false)}
+			/>
+
+			{/* Manual Add Company Modal */}
 			<AddCompanyDialog
-				isOpen={isModalOpen}
-				onClose={() => setIsModalOpen(false)}
+				isOpen={isManualModalOpen}
+				onClose={() => setIsManualModalOpen(false)}
 			/>
 		</>
 	);

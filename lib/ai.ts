@@ -13,7 +13,8 @@ const openai = new OpenAI({
 //
 // You will receive structured JSON for company, plus the tile prompt and recent conversation. Ground all responses in those objects. If a switch in context occurs, consider the new company profile authoritative.`;
 const SYSTEM_PROMPT = 'You are an expert business research assistant. ' +
-	'Cite sources inline where possible. Answer each question briefly'
+	'Cite sources inline where possible. Answer each question briefly' +
+	'Please make sure the answer does not include any symbols such as *, #, or `.'
 export interface ChatMessage {
 	role: 'system' | 'user' | 'assistant';
 	content: string;
@@ -72,6 +73,7 @@ export async function generateStreamingResponse(
 			role: 'user',
 			content: `I’m an Account Executive at Deel selling global payroll, contractor management, and employer-of-record solutions. 
 			I am conducting research into companies as to why they will be a suitable prospect for me to outreach to. 
+			Please make sure the answer does not include any symbols such as * and #.
 			For ${companyProfile['name']}, I have a  question I require answering based on web source information in the last 12 months (no earlier than Jan 2025).
 					Question: ${tilePrompt}.
 					${userRefinement == undefined && !exAnswer?'':('Example Answer:'+exAnswer)+'\nPlease print the answer and format exactly the same.'}.

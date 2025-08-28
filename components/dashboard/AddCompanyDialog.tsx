@@ -24,11 +24,12 @@ const companySchema = z.object({
 interface AddCompanyDialogProps {
 	isOpen: boolean;
 	onClose: () => void;
+	onSuccess?: () => void;
 }
 
 type CompanyFormData = z.infer<typeof companySchema>;
 
-export function AddCompanyDialog({ isOpen, onClose }: AddCompanyDialogProps) {
+export function AddCompanyDialog({ isOpen, onClose, onSuccess }: AddCompanyDialogProps) {
 	const [companyName, setCompanyName] = useState('');
 	const [companyUrl, setCompanyUrl] = useState('');
 	const [isLoading, setIsLoading] = useState(false);
@@ -66,9 +67,11 @@ export function AddCompanyDialog({ isOpen, onClose }: AddCompanyDialogProps) {
 			// Reset form
 			reset();
 
-			// Optionally redirect back to company list
-			router.push('/company');
-			onClose()
+			// Close dialog and call onSuccess with the new company
+			onClose();
+			if (onSuccess) {
+				onSuccess(new_company);
+			}
 
 		} catch (error) {
 			console.error('Failed to add company:', error);
@@ -83,7 +86,6 @@ export function AddCompanyDialog({ isOpen, onClose }: AddCompanyDialogProps) {
 			setCompanyName('');
 			setCompanyUrl("");
 			onClose();
-			router.push('/company')
 		}
 	};
 

@@ -15,6 +15,7 @@ import {toast} from "@/hooks/use-toast";
 import {useEffect, useState} from "react";
 import {AddTileDialog} from "@/components/dashboard/AddTileDialog";
 import {BulkUploadDialog} from "@/components/dashboard/BulkUploadDialog";
+import {CompanyAdditionOptions} from "@/components/dashboard/CompanyAdditionOptions";
 import Cookies from 'js-cookie'
 import ApiHelper from "@/utils/apiHelper";
 
@@ -54,9 +55,7 @@ export function TopBar({onboardingData, logout}: TopBarProps) {
 	const [isDeletingCompany, setIsDeletingCompany] = useState<boolean>(false);
 	const [companyToDelete, setCompanyToDelete] = useState<string | null>(null);
 	const [renameValue, setRenameValue] = React.useState('');
-	const [isCreatingNewCompany, setIsCreatingNewCompany] = useState(false);
-	const [newCompanyName, setNewCompanyName] = useState('');
-	const [newCompanyURL, setNewCompanyURL] = useState('');
+	const [isCompanyAdditionOptionsOpen, setIsCompanyAdditionOptionsOpen] = useState(false);
 	const [isCreatingNewContact, setIsCreatingNewContact] = useState(false);
 	const [newContactName, setNewContactName] = useState('');
 	const [newContactNote, setNewContactNote] = useState('');
@@ -92,33 +91,16 @@ export function TopBar({onboardingData, logout}: TopBarProps) {
 		setCompanyToDelete(companyId);
 	};
 
+	const handleCompanyAdded = (newCompany: Company) => {
+		if (addCompany) {
+			addCompany(newCompany);
+		}
+		// Don't redirect - stay on current page
+	};
+
 	const handleKeyPress = (e: React.KeyboardEvent) => {
 		if (e.key === 'Enter') {
-			handleCreateCompany();
-		}
-	};
-	const handleCreateCompany = async () => {
-		if (!newCompanyName.trim()) {
-			return;
-		}
-
-		try {
-			const data = {
-				name: newCompanyName.trim(),
-				url: newCompanyURL.trim()
-			};
-			const newCompany = await createCompanyDB(data);
-
-			if (addCompany && newCompany) {
-				addCompany(newCompany)
-			}
-
-			// Clear form
-			setNewCompanyName('');
-			setNewCompanyURL('');
-			setIsCreatingNewCompany(false);
-		} catch (error) {
-			console.error('Failed to create company:', error);
+			handleCreateContact();
 		}
 	};
 	const handleDeleteConfirm = async () => {
@@ -144,8 +126,8 @@ export function TopBar({onboardingData, logout}: TopBarProps) {
 			});
 		}
 	};
-	const handleAddCompnayDiaogOpen = ()=>{
-		setIsCreatingNewCompany(true)
+	const handleAddCompanyDialogOpen = ()=>{
+		setIsCompanyAdditionOptionsOpen(true)
 	}
 
 	const handleSaveTemplete = () =>{
@@ -222,7 +204,7 @@ export function TopBar({onboardingData, logout}: TopBarProps) {
 									</DropdownMenuItem>
 								))}
 								<DropdownMenuSeparator/>
-								<DropdownMenuItem onSelect={handleAddCompnayDiaogOpen} className="gap-2">
+								<DropdownMenuItem onSelect={handleAddCompanyDialogOpen} className="gap-2">
 									<Plus className="h-4 w-4"/>
 									Add Company
 								</DropdownMenuItem>
@@ -438,38 +420,12 @@ export function TopBar({onboardingData, logout}: TopBarProps) {
 					</div>
 				</DialogContent>
 			</Dialog>
-			{/* Create Company Dialog */}
-			<Dialog open={isCreatingNewCompany} onOpenChange={(open) => {
-				if (!open) setIsCreatingNewCompany(false);
-			}}>
-				<DialogContent>
-					<DialogHeader>
-						<DialogTitle>Add New Company</DialogTitle>
-					</DialogHeader>
-					<div className="space-y-2">
-						<Label htmlFor="name">Name</Label>
-						<Input
-							id="name"
-							placeholder="Company Name"
-							value={newCompanyName}
-							onChange={(e) => setNewCompanyName(e.target.value)}
-							onKeyPress={handleKeyPress}
-						/>
-						<Label htmlFor="url">Name</Label>
-						<Input
-							id="url"
-							placeholder="URL"
-							value={newCompanyURL}
-							onChange={(e) => setNewCompanyURL(e.target.value)}
-							onKeyPress={handleKeyPress}
-						/>
-						<div className="flex justify-end gap-2 pt-2">
-							<Button variant="outline" onClick={() => setIsCreatingNewCompany(false)}>Cancel</Button>
-							<Button onClick={handleCreateCompany}>Save</Button>
-						</div>
-					</div>
-				</DialogContent>
-			</Dialog>
+			{/* Company Addition Options Modal */}
+			<CompanyAdditionOptions
+				isOpen={isCompanyAdditionOptionsOpen}
+				onClose={() => setIsCompanyAdditionOptionsOpen(false)}
+				onSuccess={handleCompanyAdded}
+			/>
 			<Dialog open={isCreatingNewContact} onOpenChange={(open) => {
 				if (!open) setIsCreatingNewContact(false);
 			}}>
