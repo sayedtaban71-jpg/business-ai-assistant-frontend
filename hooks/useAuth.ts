@@ -66,14 +66,14 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     try {
       setLoading(true);
       
-      // Test CORS connection first (optional - can be disabled)
+      // Test CORS connection first
       try {
         await authAPI.testCors();
         // console.log('CORS test successful');
       } catch (corsError) {
-        console.warn('CORS test failed, proceeding with login anyway:', corsError);
-        // Don't block login if CORS test fails - just warn
-        // toast.warning('Server connection test failed, but proceeding with login...');
+        console.error('CORS test failed:', corsError);
+        toast.error('Cannot connect to server. Please check if the backend is running.');
+        throw corsError;
       }
       
       const response = await authAPI.login(credentials);

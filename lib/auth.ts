@@ -47,7 +47,7 @@ export const authAPI = {
   // Test CORS connection
   testCors: async (): Promise<any> => {
     // console.log('Testing CORS connection...');
-    const response = await ApiHelper.get(`${process.env.NEXT_PUBLIC_API_BASE_URL}/test-cors`);
+    const response = await ApiHelper.get(`${process.env.NEXT_PUBLIC_BASE_URL}/test-cors`);
     return response.data;
   },
 
