@@ -73,6 +73,33 @@
   .streaming-cursor {
     @apply inline-block w-2 h-4 bg-primary animate-pulse ml-1;
   }
+
+  /* Custom horizontal scrollbar styles */
+  .custom-scrollbar::-webkit-scrollbar {
+    height: 8px;
+  }
+  
+  .custom-scrollbar::-webkit-scrollbar-track {
+    background: #f1f5f9;
+    border-radius: 4px;
+  }
+  
+  .custom-scrollbar::-webkit-scrollbar-thumb {
+    background: #cbd5e1;
+    border-radius: 4px;
+  }
+  
+  .custom-scrollbar::-webkit-scrollbar-thumb:hover {
+    background: #94a3b8;
+  }
+
+  /* Full width tile rows */
+  .tile-row-full-width {
+    width: 100vw;
+    margin-left: calc(-50vw + 50%);
+    padding-left: 1.5rem;
+    padding-right: 1.5rem;
+  }
 }
 
 @keyframes slideIn {
@@ -187,4 +214,87 @@ body[data-scroll-locked] {
   .grid-tile {
     @apply min-h-[350px];
   }
+}
+
+/* Dashboard scrolling improvements */
+.dashboard-board-area {
+  scroll-behavior: smooth;
+  scrollbar-width: thin;
+  scrollbar-color: rgba(156, 163, 175, 0.5) transparent;
+}
+
+.dashboard-board-area::-webkit-scrollbar {
+  width: 8px;
+}
+
+.dashboard-board-area::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+.dashboard-board-area::-webkit-scrollbar-thumb {
+  background-color: rgba(156, 163, 175, 0.5);
+  border-radius: 4px;
+}
+
+.dashboard-board-area::-webkit-scrollbar-thumb:hover {
+  background-color: rgba(156, 163, 175, 0.7);
+}
+
+/* Sidebar-aware main content layout */
+@media (min-width: 1024px) {
+  .main-dashboard {
+    margin-left: 4rem; /* collapsed sidebar w-16 */
+    transition: margin-left 0.3s ease;
+  }
+  .sidebar-wide .main-dashboard {
+    margin-left: 16rem; /* expanded sidebar w-64 */
+  }
+}
+
+/* Dashboard Board Area */
+.dashboard-board-area {
+	scrollbar-width: thin;
+	scrollbar-color: #cbd5e1 #f1f5f9;
+}
+
+.dashboard-board-area::-webkit-scrollbar {
+	width: 8px;
+}
+
+.dashboard-board-area::-webkit-scrollbar-track {
+	background: #f1f5f9;
+}
+
+.dashboard-board-area::-webkit-scrollbar-thumb {
+	background: #cbd5e1;
+	border-radius: 4px;
+}
+
+.dashboard-board-area::-webkit-scrollbar-thumb:hover {
+	background: #94a3b8;
+}
+
+/* 3D Flip Effect for Notes Tiles */
+.perspective-1000 {
+	perspective: 1000px;
+}
+
+.transform-style-preserve-3d {
+	transform-style: preserve-3d;
+}
+
+.backface-hidden {
+	backface-visibility: hidden;
+}
+
+.rotate-y-180 {
+	transform: rotateY(180deg);
+}
+
+/* Line clamp utility */
+.line-clamp-6 {
+	display: -webkit-box;
+	-webkit-line-clamp: 6;
+	-webkit-box-orient: vertical;
+	overflow: hidden;
 }

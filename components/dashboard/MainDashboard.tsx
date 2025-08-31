@@ -25,6 +25,7 @@ import { useAuth } from '@/hooks/useAuth';
 import { useWindowSize } from '@/hooks/useWindowSize';
 import * as React from "react";
 import {createBrotliDecompress} from "node:zlib";
+import { CompaniesListDashboard } from './CompaniesListDashboard';
 
 export function MainDashboard() {
 	const {
@@ -60,6 +61,7 @@ export function MainDashboard() {
 	});
 	const [isAddingCompany, setIsAddingCompany] = useState(false);
 	const [showDeleteCompanyConfirm, setShowDeleteCompanyConfirm] = useState<string | null>(null);
+	const [showCompaniesList, setShowCompaniesList] = useState(false);
 
 	useEffect(() => {
 		async function loadData() {
@@ -83,6 +85,17 @@ export function MainDashboard() {
 			setIsMobileUI(false);
 		}
 	}, [windowWidth]);
+
+	useEffect(() => {
+		const open = () => setShowCompaniesList(true);
+		const close = () => setShowCompaniesList(false);
+		window.addEventListener('show-companies-list', open as any);
+		window.addEventListener('show-assistant-dashboard', close as any);
+		return () => {
+			window.removeEventListener('show-companies-list', open as any);
+			window.removeEventListener('show-assistant-dashboard', close as any);
+		};
+	}, []);
 
 	const handleCreateTile = () => {
 		// if (!currentBoardId) return;
@@ -218,7 +231,7 @@ export function MainDashboard() {
 	const selectedCompany = companies ? companies.find(c => c.id === selectedCompanyId) : null;
 	
 	// Get background styling for mobile
-	const currentId = currentDashboardId || dashboards[0].id;
+	const currentId = currentDashboardId || dashboards[0]?.id;
 	const bg = appearanceByDashboard[currentId];
 	const backgroundStyle: React.CSSProperties = bg
 		? bg.backgroundType === 'color'
@@ -231,16 +244,22 @@ export function MainDashboard() {
 		: {};
 	
 	return (
-		<div className="lg:ml-16">
+		<div className="main-dashboard">
 			{/* Desktop Layout */}
 			{!isMobileUI && (
 				<div className="flex h-screen bg-gray-50 relative">
-					<div className="flex-1 flex flex-col">
+					{/* TopBar - Full Screen Width */}
+					<div className="absolute top-0 left-0 right-0 z-10">
 											<TopBar
 						onboardingData={onboardingData}
 						logout={logout}
-					/>
-						<BoardArea/>
+							isCompaniesList={showCompaniesList}
+						/>
+					</div>
+					
+					{/* Main Content Area - Below TopBar */}
+					<div className="flex-1 flex flex-col pt-20 w-full"> {/* pt-20 to move dashboard down more, w-full for full width */}
+						{showCompaniesList ? <CompaniesListDashboard/> : <BoardArea/>}
 					</div>
 					<AddTileDialog
 						isOpen={isAddTileDialogOpen}
@@ -250,17 +269,16 @@ export function MainDashboard() {
 				</div>
 			)}
 
-			{/* Mobile Tile Detail Dialog */}
-			
+			{/* Mobile Layout */}
 			{isMobileUI && (
 				<div className="lg:hidden h-screen flex flex-col" style={backgroundStyle}>
-				{/* Mobile Header with TopBar */}
-					<div className="bg-white border-b border-gray-200 shadow-sm">
+					{/* Mobile Header with TopBar - Full Screen Width */}
+					<div className="absolute top-0 left-0 right-0 z-10 bg-white border-b border-gray-200 shadow-sm">
 						<TopBar onboardingData={onboardingData} logout={logout} />
 					</div>
 
-					{/* Mobile Tiles Area (SMS-like) */}
-					<div className="overflow-auto p-4 space-x-3 flex flex-1">
+					{/* Mobile Tiles Area (SMS-like) - Below TopBar */}
+					<div className="overflow-auto p-4 space-x-3 flex flex-1 pt-20"> {/* pt-20 to move content down more */}
 						{tiles.length === 0 ? (
 							<div className="text-center py-12 px-4">
 								<div
@@ -294,7 +312,6 @@ export function MainDashboard() {
 
 					{/* Mobile Bottom Company Bar */}
 					<div className="bg-white/95 backdrop-blur-sm border-t border-gray-200 shadow-lg mt-auto">
-					{/*	/!* Add Company Button *!/*/}
 						<div className="p-2 bg-white/95 backdrop-blur-sm flex justify-center">
 							<Button variant="outline" className="gap-2" onClick={handleBulkUpload}>
 								<Plus className="h-4 w-4"/>
@@ -350,46 +367,6 @@ export function MainDashboard() {
 									disabled={isAddingCompany}
 								/>
 								</div>
-
-								{/*<div className="space-y-2">*/}
-								{/*  <Label htmlFor="product" className="text-sm font-medium">*/}
-								{/*    Product/Service*/}
-								{/*  </Label>*/}
-								{/*  <Input*/}
-								{/*    id="product"*/}
-								{/*    value={companyFormData.product}*/}
-								{/*    onChange={(e) => setCompanyFormData(prev => ({ ...prev, product: e.target.value }))}*/}
-								{/*    placeholder="What does the company sell?"*/}
-								{/*    disabled={isAddingCompany}*/}
-								{/*  />*/}
-								{/*</div>*/}
-
-								{/*<div className="space-y-2">*/}
-								{/*  <Label htmlFor="icp" className="text-sm font-medium">*/}
-								{/*    Ideal Customer Profile*/}
-								{/*  </Label>*/}
-								{/*  <Input*/}
-								{/*    id="icp"*/}
-								{/*    value={companyFormData.icp}*/}
-								{/*    onChange={(e) => setCompanyFormData(prev => ({ ...prev, icp: e.target.value }))}*/}
-								{/*    placeholder="Target customer description"*/}
-								{/*    disabled={isAddingCompany}*/}
-								{/*  />*/}
-								{/*</div>*/}
-
-								{/*<div className="space-y-2">*/}
-								{/*  <Label htmlFor="notes" className="text-sm font-medium">*/}
-								{/*    Notes*/}
-								{/*  </Label>*/}
-								{/*  <Textarea*/}
-								{/*    id="notes"*/}
-								{/*    value={companyFormData.notes}*/}
-								{/*    onChange={(e) => setCompanyFormData(prev => ({ ...prev, notes: e.target.value }))}*/}
-								{/*    placeholder="Additional notes about the company"*/}
-								{/*    rows={3}*/}
-								{/*    disabled={isAddingCompany}*/}
-								{/*  />*/}
-								{/*</div>*/}
 
 								<div className="flex gap-3 pt-2">
 									<Button
@@ -454,6 +431,7 @@ export function MainDashboard() {
 							</div>
 						</DialogContent>
 					</Dialog>
+
 					<MobileTileDetailDialog
 						tile={selectedMobileTile}
 						isOpen={isMobileDetailDialogOpen}
@@ -461,8 +439,6 @@ export function MainDashboard() {
 					/>
 				</div>
 			)}
-			{/* Mobile/Tablet Layout */}
-			
 		</div>
 	);
 }

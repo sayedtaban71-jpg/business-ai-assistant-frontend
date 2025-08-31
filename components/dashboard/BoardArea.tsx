@@ -3,6 +3,7 @@
 import { useState, useRef, useCallback, useEffect } from 'react';
 import { useAppState } from '@/hooks/useAppState';
 import { TileCard } from './TileCard';
+import { NotesTileCard } from './NotesTileCard';
 import { cn } from '@/lib/utils';
 import Draggable from 'react-draggable';
 import 'react-resizable/css/styles.css';
@@ -74,6 +75,32 @@ export function BoardArea() {
 		});
 
 	}, [tileIds, tileSizeById, tilePositionsById, user]);
+
+	// Listen for dashboard refresh events
+	useEffect(() => {
+		const handleDashboardRefresh = () => {
+			// Reset all tiles to consistent medium size
+			const consistentSizes: Record<string, TileSize> = {};
+			const userId = user?.id?.toString() || 'default';
+			
+			tileIds.forEach((id) => {
+				// Set all tiles to medium size (350x300)
+				consistentSizes[id] = {
+					id,
+					width: 350,
+					height: 300
+				};
+				
+				// Update app state to persist the reset
+				setTilePositionForTileId(id, { x: 0, y: 0, width: 350, height: 300 }, userId);
+			});
+			
+			setTileSizes(consistentSizes);
+		};
+
+		window.addEventListener('dashboard-refresh', handleDashboardRefresh);
+		return () => window.removeEventListener('dashboard-refresh', handleDashboardRefresh);
+	}, [tileIds, setTilePositionForTileId, user]);
 
 	useEffect(() => {
 		try {
@@ -158,44 +185,97 @@ export function BoardArea() {
 	return (
 		<div
 			ref={boardRef}
-			className="flex-1 p-6 overflow-auto relative"
+			className="flex-1 overflow-auto relative min-h-0 dashboard-board-area font-['SF_Pro_Display'] font-semibold w-full"
 			style={backgroundStyle}
 		>
-			<div className="relative min-w-full h-full flex flex-wrap">
-				{tileIds.map((id) => {
-					const tile = tiles.find(t => t.id === id);
-					if (!tile) return null;
+			{/* Main Content Area - Full Screen Width with Single Scroll */}
+			<div className="relative w-full h-[calc(75vh+5rem)] pt-20"> {/* 75vh + TopBar height (5rem) */}
+				{/* Combined Scrollable Container for Both Rows */}
+				<div className="h-[75vh] overflow-x-auto overflow-y-auto custom-scrollbar">
+					<div className="flex flex-col space-y-6 p-6">
+						{/* Prompt Cards Row */}
+						<div className="w-full flex-shrink-0">
+							<div className="flex gap-4 pb-4 px-6">
+								{tileIds.map((id) => {
+									const tile = tiles.find(t => t.id === id);
+									if (!tile || tile.title.startsWith('#')) return null; // Skip notes tiles
 
-					const size = tileSizes[id];
-					if (!size) return null;
+									const size = tileSizes[id];
+									if (!size) return null;
 
-					const isDragOver = dragOverTileId === id;
-					const isDragging = draggedTileId === id;
+									const isDragOver = dragOverTileId === id;
+									const isDragging = draggedTileId === id;
 
-					return (
-						<div
-							key={id}
-							draggable={!isResizing}
-							onDragStart={(e) => handleDragStart(e, id)}
-							onDragOver={(e) => handleDragOver(e, id)}
-							onDragLeave={handleDragLeave}
-							onDrop={(e) => handleDrop(e, id)}
-							onDragEnd={handleDragEnd}
-							className={cn(
-								"mb-4 mr-2 transition-all duration-200",
-								isDragOver && "ring-2 ring-blue-500 ring-opacity-50",
-								isDragging && "opacity-50"
-							)}
-						>
-							<TileCard
-								tile={tile}
-								position={{ x: 0, y: 0, width: size.width, height: size.height }}
-								setIsResizing={setIsResizing}
-								onResize={(newSize) => handleSizeChange(id, newSize)}
-							/>
+									return (
+										<div
+											key={id}
+											draggable={!isResizing}
+											onDragStart={(e) => handleDragStart(e, id)}
+											onDragOver={(e) => handleDragOver(e, id)}
+											onDragLeave={handleDragLeave}
+											onDrop={(e) => handleDrop(e, id)}
+											onDragEnd={handleDragEnd}
+											className={cn(
+												"flex-shrink-0 transition-all duration-200",
+												isDragOver && "ring-2 ring-blue-500 ring-opacity-50",
+												isDragging && "opacity-50"
+											)}
+										>
+											<TileCard
+												tile={tile}
+												position={{ x: 0, y: 0, width: size.width, height: size.height }}
+												setIsResizing={setIsResizing}
+												onResize={(newSize: { width: number; height: number }) => handleSizeChange(id, newSize)}
+											/>
+										</div>
+									);
+								})}
+							</div>
 						</div>
-					);
-				})}
+
+						{/* Notes Tile Cards Row */}
+						<div className="w-full flex-shrink-0">
+							<div className="flex gap-4 pb-4 px-6">
+								{tileIds.map((id) => {
+									const tile = tiles.find(t => t.id === id);
+									if (!tile || !tile.title.startsWith('#')) return null; // Only notes tiles
+
+									const size = tileSizes[id];
+									if (!size) return null;
+
+									const isDragOver = dragOverTileId === id;
+									const isDragging = draggedTileId === id;
+
+									return (
+										<div
+											key={id}
+											draggable={!isResizing}
+											onDragStart={(e) => handleDragStart(e, id)}
+											onDragOver={(e) => handleDragOver(e, id)}
+											onDragLeave={handleDragLeave}
+											onDrop={(e) => handleDrop(e, id)}
+											onDragEnd={handleDragEnd}
+											className={cn(
+												"flex-shrink-0 transition-all duration-200",
+												isDragOver && "ring-2 ring-blue-500 ring-opacity-50",
+												isDragging && "opacity-50"
+											)}
+										>
+											<NotesTileCard
+												tile={tile}
+												position={{ x: 0, y: 0, width: size.width, height: size.height }}
+												onUpdate={(updatedTile) => {
+													// Handle tile updates if needed
+													console.log('Notes tile updated:', updatedTile);
+												}}
+											/>
+										</div>
+									);
+								})}
+							</div>
+						</div>
+					</div>
+				</div>
 			</div>
 		</div>
 	);

@@ -89,18 +89,17 @@ export async function getTiles(dash_id: string | null ): Promise<Tile[]> {
 //Create Tile
 export async function createTile(data: Partial<Tile>): Promise<Tile | null> {
 	try{
-		return ApiHelper.post(`${API_BASE_URL}/tile/`, data)
-			.then((response: { status: any; data: any; }) => {
-				if(response.status === 201) {
-					toast({
-						title: "Success",
-						description: "Created successfully",
-					})
-					return response.data;
-				}
-			})
+		const response = await ApiHelper.post(`${API_BASE_URL}/tile/`, data);
+		if(response.status === 201) {
+			toast({
+				title: "Success",
+				description: "Created successfully",
+			});
+			return response.data;
+		}
+		return null;
 	}catch (error){
-		console.error(error)
+		console.error(error);
 		throw new Error('Failed to create tile');
 	}
 }
@@ -110,21 +109,20 @@ export async function updateTile(id: string, data: Partial<Tile>): Promise<Tile 
 		if (Object.keys(data).length === 0) {
 			return null;
 		}
-		return ApiHelper.put(`${API_BASE_URL}/tile/${id}`, data)
-			.then((response: { status: any; data: any; }) => {
-				if(response.status == 200){
-					// toast({
-					// 	title: "Success",
-					// 	description: "Updated successfully",
-					// })
-					return response.data
-				}else {
-					toast({
-						title: "Error",
-						description: "Failed to update tile",
-					})
-				}
-			})
+		const response = await ApiHelper.put(`${API_BASE_URL}/tile/${id}`, data);
+		if(response.status == 200){
+			// toast({
+			// 	title: "Success",
+			// 	description: "Updated successfully",
+			// })
+			return response.data;
+		}else {
+			toast({
+				title: "Error",
+				description: "Failed to update tile",
+			});
+		}
+		return null;
 	}catch (error){
 		console.error(error);
 		throw new Error('Failed to update tile');
@@ -133,21 +131,20 @@ export async function updateTile(id: string, data: Partial<Tile>): Promise<Tile 
 //Delete Tile
 export async function deleteTile(id: string): Promise<boolean> {
 	try{
-		return ApiHelper.delete(`${API_BASE_URL}/tile/${id}`)
-			.then((response: { status: any; data: any; }) => {
-				if(response.status === 201) {
-					toast({
-						title: "Success",
-						description: "Deleted successfully",
-					})
-					return true
-				}else {
-					toast({
-						title: "Error",
-						description: "Server Error!"
-					})
-				}
-			})
+		const response = await ApiHelper.delete(`${API_BASE_URL}/tile/${id}`);
+		if(response.status === 201) {
+			toast({
+				title: "Success",
+				description: "Deleted successfully",
+			});
+			return true;
+		}else {
+			toast({
+				title: "Error",
+				description: "Server Error!"
+			});
+		}
+		return false;
 	}catch (error){
 		console.error(error);
 		throw new Error('Failed to delete tile');

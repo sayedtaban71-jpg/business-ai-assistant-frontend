@@ -7,7 +7,7 @@ import { Button } from '@/components/ui/button';
 import { Textarea } from '@/components/ui/textarea';
 import { Input } from '@/components/ui/input';
 import { Badge } from '@/components/ui/badge';
-import { Send, Square, Edit2, Check, X, Trash2, RotateCcw, MessageSquare } from 'lucide-react';
+import { Send, Square, Edit2, Check, X, Trash2, RotateCcw, MessageSquare, Upload, Video, FileAudio } from 'lucide-react';
 import {Company, Tile} from '@/types';
 import { useAppState } from '@/hooks/useAppState';
 import { toast } from '@/hooks/use-toast';
@@ -36,7 +36,10 @@ export function TileCard({ tile, position, onPositionChange, onResize, onDrag, i
 	const [isFlipped, setIsFlipped] = useState(false);
 	const abortControllerRef = useRef<AbortController | null>(null);
 	const [status, setStatus] = useState<string | null>(null);
-	const [content, setContent] = useState<string | null>(null)
+	const [content, setContent] = useState<string | null>(null);
+	const [zoomRecordings, setZoomRecordings] = useState<Array<{id: string, name: string, url: string, transcript?: string}>>([]);
+	const [isUploading, setIsUploading] = useState(false);
+	const fileInputRef = useRef<HTMLInputElement>(null);
 
 	const {
 		selectedCompanyId,
@@ -44,7 +47,8 @@ export function TileCard({ tile, position, onPositionChange, onResize, onDrag, i
 		contextVersion,
 		updateTile,
 		deleteTile,
-		currentDashboardId
+		currentDashboardId,
+		tiles
 	} = useAppState();
 
 	// Auto-clear response when context changes
@@ -97,17 +101,49 @@ export function TileCard({ tile, position, onPositionChange, onResize, onDrag, i
 		setStreamingContent('');
 		console.log(tile.last_answer);
 		try {
+			// Get notes tiles for the current company (each notes tile is company-specific)
+			const notesTiles = tiles.filter(t => 
+				t.title.startsWith('#') && 
+				t.company_id?.toString() === selectedCompanyId
+			);
+			
+			// Create notes context from company-specific notes tiles
+			const notesContext = notesTiles.length > 0 ? 
+				`\n\nAdditional Company Notes:\n${notesTiles.map(nt => 
+					`- ${nt.title.substring(1)}: ${nt.base_prompt}`
+				).join('\n')}` : '';
+
+			// Log the notes context being added
+			if (notesTiles.length > 0) {
+				console.log(`Adding ${notesTiles.length} company-specific notes tiles as context:`, notesContext);
+			}
+
+			// Prepare Zoom recording context
+			const zoomContext = zoomRecordings.length > 0 ? {
+				recordings: zoomRecordings.map(rec => ({
+					name: rec.name,
+					transcript: rec.transcript || 'Transcript not available'
+				})),
+				summary: `This tile has ${zoomRecordings.length} Zoom recording(s) with the company that provide additional context for AI responses.`
+			} : null;
+
+			// Combine base prompt with notes context
+			const enhancedPrompt = `${tile.base_prompt}${notesContext}`;
+			
+			console.log('Enhanced prompt with company notes context:', enhancedPrompt);
+
 			const response = await fetch('/api/ai/respond', {
 				method: 'POST',
 				headers: { 'Content-Type': 'application/json' },
 				body: JSON.stringify({
 					tileId: tile.id,
-					basePrompt: tile.base_prompt,
+					basePrompt: enhancedPrompt,
 					exAnswer: tile.ex_answer,
 					lastAnswer: tile.last_answer || undefined,
 					userRefinement: refinementText || undefined,
 					company: selectedCompany,
-					contextVersion
+					contextVersion,
+					zoomRecordings: zoomContext
 				}),
 				cache: 'no-store',
 				signal: abortControllerRef.current.signal
@@ -219,6 +255,81 @@ export function TileCard({ tile, position, onPositionChange, onResize, onDrag, i
 		}
 	};
 
+	const handleZoomRecordingUpload = async (event: React.ChangeEvent<HTMLInputElement>) => {
+		const files = event.target.files;
+		if (!files || files.length === 0) return;
+
+		setIsUploading(true);
+		
+		try {
+			for (let i = 0; i < files.length; i++) {
+				const file = files[i];
+				
+				// Validate file type (audio/video files)
+				if (!file.type.startsWith('audio/') && !file.type.startsWith('video/')) {
+					toast({
+						title: "Invalid file type",
+						description: `${file.name} is not a valid audio/video file. Please upload Zoom recordings only.`,
+						variant: "destructive",
+					});
+					continue;
+				}
+
+				// Create FormData for upload
+				const formData = new FormData();
+				formData.append('file', file);
+				formData.append('tileId', tile.id);
+				formData.append('companyId', selectedCompanyId || '');
+
+				// Upload file to backend
+				const response = await fetch('/api/upload/zoom-recording', {
+					method: 'POST',
+					body: formData,
+				});
+
+				if (!response.ok) {
+					throw new Error(`Failed to upload ${file.name}`);
+				}
+
+				const result = await response.json();
+				
+				// Add to local state
+				setZoomRecordings(prev => [...prev, {
+					id: result.id,
+					name: file.name,
+					url: result.url,
+					transcript: result.transcript
+				}]);
+
+				toast({
+					title: "Upload successful",
+					description: `${file.name} has been uploaded and processed.`,
+				});
+			}
+		} catch (error) {
+			console.error('Upload error:', error);
+			toast({
+				title: "Upload failed",
+				description: "Failed to upload Zoom recording. Please try again.",
+				variant: "destructive",
+			});
+		} finally {
+			setIsUploading(false);
+			// Reset file input
+			if (fileInputRef.current) {
+				fileInputRef.current.value = '';
+			}
+		}
+	};
+
+	const removeZoomRecording = (recordingId: string) => {
+		setZoomRecordings(prev => prev.filter(rec => rec.id !== recordingId));
+		toast({
+			title: "Recording removed",
+			description: "Zoom recording has been removed from this tile.",
+		});
+	};
+
 	const currentContent = streamingContent ? streamingContent : tile.last_answer;
 	const needsUpdate = tile.last_run_context_version < contextVersion;
 
@@ -328,14 +439,11 @@ export function TileCard({ tile, position, onPositionChange, onResize, onDrag, i
 									<div className="prose prose-sm max-w-none h-full">
 										{streamingContent ? (
 											<div className="space-y-4">
-												{/*<div className="bg-blue-50 rounded-lg p-4 border-l-4 border-blue-500">*/}
-												{/*	<h4 className="font-medium text-blue-900 mb-2">Question:</h4>*/}
-												{/*	<p className="text-sm text-blue-800">{tile.base_prompt}</p>*/}
-												{/*</div>*/}
-												<div className="bg-green-50 rounded-lg p-4 border-l-4 border-green-500">
-													<h4 className="font-medium text-green-900 mb-2">Answer:</h4>
+												
+												<div className="bg-white rounded-lg p-4 border-l-4 border-gray-300 shadow-sm">
+													<h4 className="font-medium text-gray-900 mb-2">Answer:</h4>
 													<div
-														className="whitespace-pre-wrap text-sm text-green-800 h-full overflow-auto">
+														className="whitespace-pre-wrap text-sm text-gray-800 h-full overflow-auto">
 														{streamingContent}
 														{status === 'Generating' && (
 															<span className="streaming-cursor"></span>
@@ -419,6 +527,8 @@ export function TileCard({ tile, position, onPositionChange, onResize, onDrag, i
 									</div>
 								</CardHeader>
 
+
+
 								<CardContent className="flex-1 overflow-auto min-h-0">
 									<div className="prose prose-sm max-w-none h-full">
 										{streamingContent ? (
@@ -430,37 +540,83 @@ export function TileCard({ tile, position, onPositionChange, onResize, onDrag, i
 												)}
 											</div>
 										) : (
-											<p className="text-gray-500 text-sm italic">
-												Click generate to see AI response
-											</p>
+											<div className="text-center py-8">
+												<div className="text-gray-400 mb-2">
+													<MessageSquare className="w-8 h-8 mx-auto" />
+												</div>
+												<p className="text-gray-500 text-sm">
+													Start a conversation by typing a message below
+												</p>
+												<p className="text-gray-400 text-xs mt-1">
+													You can also attach Zoom recordings for context
+												</p>
+											</div>
 										)}
 									</div>
 								</CardContent>
 
+								{/* Hidden file input for Zoom recordings */}
+								<input
+									ref={fileInputRef}
+									type="file"
+									multiple
+									accept="audio/*,video/*,.mp4,.mp3,.wav,.m4a,.avi,.mov"
+									onChange={handleZoomRecordingUpload}
+									className="hidden"
+								/>
+
 								<CardFooter className="pt-3 flex-shrink-0">
-									<div className="flex gap-2 w-full">
+									<div className="flex gap-2 w-full items-end">
+										<div className="flex-1 relative">
 										<Textarea
-											placeholder="Add refinement or follow-up..."
+												placeholder="Ask..."
 											value={refinementText}
 											onChange={(e) => setRefinementText(e.target.value)}
 											rows={1}
-											className="flex-1 text-sm resize-none"
-										/>
-										<div className="flex gap-2">
+												className="w-full text-sm resize-none pr-16"
+												style={{ paddingRight: '4rem' }}
+											/>
+											<div className="absolute right-2 bottom-2 flex items-center gap-1">
+												<Button
+													variant="ghost"
+													size="sm"
+													onClick={() => fileInputRef.current?.click()}
+													disabled={isUploading}
+													className="p-1 h-6 w-6 text-gray-400 hover:text-gray-600"
+													title="Attach Zoom recording"
+												>
+													<Upload className="w-3 h-3" />
+												</Button>
+												{/* Show recording count indicator if recordings exist */}
+												{zoomRecordings.length > 0 && (
+													<div className="flex items-center justify-center w-4 h-4 bg-blue-100 text-blue-600 rounded-full text-xs font-medium">
+														{zoomRecordings.length}
+													</div>
+												)}
 											{tile.status === 'loading' ? (
-												<Button onClick={handleAbort} variant="destructive" size="sm"
-														className="gap-2 self-center">
-													<Square className="w-4 h-4"/>
+													<Button 
+														onClick={handleAbort} 
+														variant="destructive" 
+														size="sm"
+														className="p-1 h-6 w-6 rounded-full bg-black hover:bg-gray-800"
+														title="Stop generation"
+													>
+														<Square className="w-3 h-3 text-white" />
 												</Button>
 											) : (
 												<Button
 													onClick={handleGenerate}
 													size="sm"
-													className="px-3 align-self-center"
-													disabled={!refinementText.trim() || status === 'Generating'}>
-													<Send className="w-4 h-4"/>
+														disabled={!refinementText.trim() || status === 'Generating'}
+														className="p-1 h-6 w-6 rounded-full bg-black hover:bg-gray-800"
+														title="Send message"
+													>
+														<svg className="w-3 h-3 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+															<path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 10l7-7m0 0l7 7m-7-7v18" />
+														</svg>
 												</Button>
 											)}
+											</div>
 										</div>
 									</div>
 								</CardFooter>

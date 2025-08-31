@@ -9,12 +9,13 @@ const withAuth = (headers: Record<string, string> = {}): Record<string, string> 
     const tokenType = authToken ? 'Bearer' : 'Token';
     
     return {
-        ...headers, // This will override the default if a specific Content-Type is provided
+        ...headers,
+        'Content-Type': 'application/json',
         Authorization: token ? `${tokenType} ${token}` : ''
     };
 };
 
-const base = (method: string, url: string, data: any = {}, headers: any = {}, params: Record<string, any> = {}, secure: boolean = false, responseType: AxiosRequestConfig['responseType'] = 'json') => {
+const base = (method: string, url: string, data: any = {}, headers: Record<string, string> = {}, params: Record<string, any> = {}, secure: boolean = false, responseType: AxiosRequestConfig['responseType'] = 'json') => {
     console.log(`Making ${method.toUpperCase()} request to:`, url);
     console.log('Secure request:', secure);
     

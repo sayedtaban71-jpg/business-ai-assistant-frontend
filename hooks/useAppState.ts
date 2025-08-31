@@ -60,6 +60,7 @@ interface AppStateStore extends AppState {
 	// Tile sizes
 	tileSizeById: Record<string, 's' | 'm' | 'l'>;
 	setTileSizeForTileId: (tileId: string, size: 's' | 'm' | 'l') => void;
+	resetTileSizes: () => void;
 	// Tile positions
 	tilePositionsById: Record<string, Record<string, { x: number; y: number; width: number; height: number }>>;
 	setTilePositionForTileId: (tileId: string, position: { x: number; y: number; width: number; height: number }, userId: string) => void;
@@ -330,6 +331,21 @@ export const useAppState = create<AppStateStore>((set, get) => ({
 		set({ tileSizeById: updated });
 		if (typeof window !== 'undefined') {
 			localStorage.setItem('tileSizeById', JSON.stringify(updated));
+		}
+	},
+
+	resetTileSizes: () => {
+		// Reset all tiles to medium size
+		const allTileIds = Object.keys(get().tileSizeById);
+		const resetSizes: Record<string, 's' | 'm' | 'l'> = {};
+		
+		allTileIds.forEach(tileId => {
+			resetSizes[tileId] = 'm';
+		});
+		
+		set({ tileSizeById: resetSizes });
+		if (typeof window !== 'undefined') {
+			localStorage.setItem('tileSizeById', JSON.stringify(resetSizes));
 		}
 	},
 

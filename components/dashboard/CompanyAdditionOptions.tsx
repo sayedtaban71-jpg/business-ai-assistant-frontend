@@ -12,7 +12,7 @@ interface CompanyAdditionOptionsProps {
   onSuccess?: (company?: Company) => void;
 }
 
-export function CompanyAdditionOptions({ isOpen, onClose, onSuccess }: CompanyAdditionOptionsProps) {
+export function CompanyAdditionOptions({ isOpen, onClose }: CompanyAdditionOptionsProps) {
   const [selectedOption, setSelectedOption] = useState<'manual' | 'csv' | 'crm' | null>(null);
 
   const handleOptionSelect = (option: 'manual' | 'csv' | 'crm') => {
@@ -24,12 +24,9 @@ export function CompanyAdditionOptions({ isOpen, onClose, onSuccess }: CompanyAd
     onClose();
   };
 
-  const handleSuccess = (company?: Company) => {
+  const handleSuccess = () => {
     setSelectedOption(null);
     onClose();
-    if (onSuccess) {
-      onSuccess(company);
-    }
   };
 
   if (!isOpen) return null;

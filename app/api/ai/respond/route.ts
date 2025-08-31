@@ -57,9 +57,12 @@ export async function POST(request: NextRequest) {
 		let stream: any;
 		try {
 			const { generateStreamingResponse } = await import('@/lib/ai');
+			// Include company URL context in the prompt sent to the AI
+			// basePrompt now includes notes context from TileCard component
+			const basePromptWithUrl = `${basePrompt}\nCompany URL: ${company?.url ?? ''}`;
 			stream = await generateStreamingResponse(
 				company,
-				basePrompt,
+				basePromptWithUrl,
 				exAnswer,
 				lastAnswer,
 				// recentHistory,

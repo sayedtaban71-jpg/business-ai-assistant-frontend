@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -16,6 +16,7 @@ interface BulkUploadDialogProps {
 	isOpen: boolean;
 	onClose: () => void;
 	currentTileCount: number;
+	initialTab?: 'individual' | 'bulk';
 }
 
 interface PromptItem {
@@ -24,13 +25,18 @@ interface PromptItem {
 	prompt: string;
 }
 
-export function BulkUploadDialog({ isOpen, onClose, currentTileCount }: BulkUploadDialogProps) {
-	const [activeTab, setActiveTab] = useState('individual');
+export function BulkUploadDialog({ isOpen, onClose, currentTileCount, initialTab = 'individual' }: BulkUploadDialogProps) {
+	const [activeTab, setActiveTab] = useState(initialTab);
 	const [prompts, setPrompts] = useState<PromptItem[]>([]);
 	const [bulkText, setBulkText] = useState('');
 	const [isSubmitting, setIsSubmitting] = useState(false);
 	const [newTitle, setNewTitle] = useState('');
 	const [newPrompt, setNewPrompt] = useState('');
+
+	// Update active tab when initialTab prop changes
+	useEffect(() => {
+		setActiveTab(initialTab);
+	}, [initialTab]);
 
 	const { createTile, currentDashboardId } = useAppState();
 
@@ -52,92 +58,34 @@ export function BulkUploadDialog({ isOpen, onClose, currentTileCount }: BulkUplo
 		setPrompts(prompts.filter(p => p.id !== id));
 	};
 
-	const parseBulkText = () => {
+	const parseBulkText = async () => {
 		if (!bulkText.trim()) return;
-
-		const lines = bulkText.trim().split('\n');
-		const newPrompts: PromptItem[] = [];
-		
-		// Check if we have numbered or bulleted questions
-		const hasNumberedQuestions = lines.some(line => /^(\d+[.)]|\-|•|\*)\s/.test(line.trim()));
-
-		if (hasNumberedQuestions) {
-			// Handle numbered/bulleted questions
-			lines.forEach((line, index) => {
-				const trimmedLine = line.trim();
-				if (!trimmedLine) return;
-
-				if (/^(\d+[.)]|\-|•|\*)\s/.test(trimmedLine)) {
-					// Extract the question content (remove the number/bullet)
-					const questionContent = trimmedLine.replace(/^(\d+[.)]|\-|•|\*)\s/, '');
-					if (questionContent.trim()) {
-						newPrompts.push({
-							id: Date.now().toString() + Math.random(),
-							title: `Question ${index + 1}`,
-							prompt: questionContent.trim(),
-						});
-					}
-				}
+		setIsSubmitting(true);
+		try {
+			const res = await fetch('/api/ai/parse-prompts', {
+				method: 'POST',
+				headers: { 'Content-Type': 'application/json' },
+				body: JSON.stringify({ bulkText, maxItems: 50 })
 			});
-		} else {
-			// Handle structured format (Title/Prompt) or simple lines
-			const groups = bulkText.trim().split('\n\n');
-			let promptCount = 0;
-			
-			groups.forEach((group, index) => {
-				const groupLines = group.split('\n');
-				let currentTitle = '';
-				let currentPrompt = '';
-				
-				groupLines.forEach(line => {
-					const trimmedLine = line.trim();
-					if (trimmedLine.startsWith('Title:') || trimmedLine.startsWith('T:')) {
-						currentTitle = trimmedLine.replace(/^(Title:|T:)\s*/, '');
-					} else if (trimmedLine.startsWith('Prompt:') || trimmedLine.startsWith('P:')) {
-						currentPrompt = trimmedLine.replace(/^(Prompt:|P:)\s*/, '');
-					} else if (trimmedLine) {
-						currentPrompt += (currentPrompt ? '\n' : '') + trimmedLine;
-					}
-				});
-				
-				if (currentPrompt.trim()) {
-					newPrompts.push({
-						id: Date.now().toString() + Math.random(),
-						title: currentTitle || `Question ${promptCount + 1}`,
-						prompt: currentPrompt.trim(),
-					});
-					promptCount++;
-				}
-			});
-		}
-
-		// If no structured format was found, treat each non-empty line as a separate prompt
-		if (newPrompts.length === 0) {
-			lines.forEach((line, index) => {
-				const trimmedLine = line.trim();
-				if (trimmedLine && !trimmedLine.startsWith('Title:') && !trimmedLine.startsWith('Prompt:') && !trimmedLine.startsWith('T:') && !trimmedLine.startsWith('P:')) {
-					newPrompts.push({
-						id: Date.now().toString() + Math.random(),
-						title: `Question ${index + 1}`,
-						prompt: trimmedLine,
-					});
-				}
-			});
-		}
-
-		if (newPrompts.length > 0) {
-			setPrompts([...prompts, ...newPrompts]);
+			if (!res.ok) {
+				const text = await res.text();
+				throw new Error(text || `HTTP ${res.status}`);
+			}
+			const data = await res.json();
+			const incoming = Array.isArray(data?.prompts) ? data.prompts as Array<{title:string; prompt:string}> : [];
+			if (incoming.length === 0) {
+				toast({ title: 'No prompts found', description: 'Please refine your text and try again.', variant: 'destructive' });
+				return;
+			}
+			const mapped = incoming.map((p, idx) => ({ id: Date.now().toString() + '-' + idx, title: p.title, prompt: p.prompt }));
+			setPrompts(prev => [...prev, ...mapped]);
 			setBulkText('');
-			toast({
-				title: "Text parsed successfully",
-				description: `Found ${newPrompts.length} prompt(s) to create.`,
-			});
-		} else {
-			toast({
-				title: "No prompts found",
-				description: "Please check your text format and try again.",
-				variant: "destructive",
-			});
+			toast({ title: 'Parsed successfully', description: `Found ${mapped.length} prompt(s).` });
+		} catch (err) {
+			console.error('Parse failed', err);
+			toast({ title: 'Parse failed', description: 'Could not parse text with AI. Try again.', variant: 'destructive' });
+		} finally {
+			setIsSubmitting(false);
 		}
 	};
 
@@ -297,24 +245,7 @@ export function BulkUploadDialog({ isOpen, onClose, currentTileCount }: BulkUplo
 									id="bulk-text"
 									value={bulkText}
 									onChange={(e) => setBulkText(e.target.value)}
-									placeholder={`Enter multiple prompts in any of these formats:
-
-Format 1 - Numbered Questions:
-1. What is the company's revenue model?
-2. Who are their main competitors?
-3. What is their target market?
-
-Format 2 - Bullet Points:
-- Question about revenue model
-- Question about competitors
-- Question about target market
-
-Format 3 - Structured (Title/Prompt):
-Title: Revenue Analysis
-Prompt: Analyze the company's revenue streams and pricing strategy
-
-Title: Revenue Analysis
-Prompt: Analyze the company's revenue streams and pricing strategy
+									placeholder={`Enter multiple prompts for company research:
 `}
 									rows={8}
 									disabled={isSubmitting}
@@ -329,7 +260,7 @@ Prompt: Analyze the company's revenue streams and pricing strategy
 									variant="outline"
 								>
 									<FileText className="w-4 h-4 mr-2" />
-									Parse Text
+									Next
 								</Button>
 								<Button
 									type="button"
@@ -369,6 +300,7 @@ Prompt: Analyze the company's revenue streams and pricing strategy
 					</TabsContent>
 				</Tabs>
 
+				{prompts.length > 0 && (
 				<DialogFooter>
 					<Button
 						type="button"
@@ -382,10 +314,12 @@ Prompt: Analyze the company's revenue streams and pricing strategy
 						type="submit"
 						onClick={handleSubmit}
 						disabled={isSubmitting || prompts.length === 0}
+							className="bg-blue-600 hover:bg-blue-700 text-white"
 					>
 						{isSubmitting ? 'Creating...' : `Create ${prompts.length} Tile${prompts.length !== 1 ? 's' : ''}`}
 					</Button>
 				</DialogFooter>
+				)}
 			</DialogContent>
 		</Dialog>
 	);
