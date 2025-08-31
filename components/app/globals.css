@@ -1,0 +1,190 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  :root {
+    --background: 0 0% 100%;
+    --foreground: 0 0% 3.9%;
+    --card: 0 0% 100%;
+    --card-foreground: 0 0% 3.9%;
+    --popover: 0 0% 100%;
+    --popover-foreground: 0 0% 3.9%;
+    --primary: 221 83% 53%;
+    --primary-foreground: 0 0% 98%;
+    --secondary: 0 0% 96.1%;
+    --secondary-foreground: 0 0% 9%;
+    --muted: 0 0% 96.1%;
+    --muted-foreground: 0 0% 45.1%;
+    --accent: 17 88% 40%;
+    --accent-foreground: 0 0% 98%;
+    --destructive: 0 84.2% 60.2%;
+    --destructive-foreground: 0 0% 98%;
+    --border: 0 0% 89.8%;
+    --input: 0 0% 89.8%;
+    --ring: 221 83% 53%;
+    --success: 142 71% 45%;
+    --warning: 38 92% 50%;
+    --radius: 0.75rem;
+  }
+  
+  .dark {
+    --background: 0 0% 3.9%;
+    --foreground: 0 0% 98%;
+    --card: 0 0% 3.9%;
+    --card-foreground: 0 0% 98%;
+    --popover: 0 0% 3.9%;
+    --popover-foreground: 0 0% 98%;
+    --primary: 221 83% 53%;
+    --primary-foreground: 0 0% 98%;
+    --secondary: 0 0% 14.9%;
+    --secondary-foreground: 0 0% 98%;
+    --muted: 0 0% 14.9%;
+    --muted-foreground: 0 0% 63.9%;
+    --accent: 17 88% 40%;
+    --accent-foreground: 0 0% 98%;
+    --destructive: 0 62.8% 30.6%;
+    --destructive-foreground: 0 0% 98%;
+    --border: 0 0% 14.9%;
+    --input: 0 0% 14.9%;
+    --ring: 221 83% 53%;
+  }
+}
+
+@layer base {
+  * {
+    @apply border-border;
+  }
+  body {
+    @apply bg-background text-foreground;
+    font-feature-settings: "rlig" 1, "calt" 1;
+  }
+}
+
+@layer components {
+  .tile-loading {
+    @apply animate-pulse;
+  }
+  
+  .context-pill {
+    @apply inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium rounded-full bg-primary/10 text-primary border border-primary/20;
+  }
+  
+  .streaming-cursor {
+    @apply inline-block w-2 h-4 bg-primary animate-pulse ml-1;
+  }
+}
+
+@keyframes slideIn {
+  from { opacity: 0; transform: translateY(10px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+.slide-in {
+  animation: slideIn 0.2s ease-out;
+}
+
+
+.z-1000 {
+  z-index: 1000;
+}
+.align-self-center {
+  align-self: center !important;
+}
+
+.w-screen-75 {
+  width: 75vw;
+}
+
+body[data-scroll-locked] {
+  margin-right: 0px !important;
+}
+
+/* Mobile Dialog Centering */
+@media (max-width: 640px) {
+  [data-radix-dialog-content] {
+    position: fixed !important;
+    left: 50% !important;
+    top: 50% !important;
+    transform: translate(-50%, -50%) !important;
+    margin: 0 !important;
+  }
+}
+
+/* 3D Flip Animation Styles */
+.perspective-1000 {
+  perspective: 1000px;
+}
+
+.transform-style-preserve-3d {
+  transform-style: preserve-3d;
+}
+
+.backface-hidden {
+  backface-visibility: hidden;
+}
+
+.rotate-y-180 {
+  transform: rotateY(180deg);
+}
+
+/* Grid System Styles */
+.grid-tile {
+  @apply transition-all duration-200 ease-in-out;
+}
+
+.grid-tile:hover {
+  @apply transform scale-[1.02] shadow-lg;
+}
+
+/* Ensure tiles maintain aspect ratio */
+.tile-card-content {
+  @apply h-full w-full;
+}
+
+/* React-RND Styles */
+.tile-rnd-container {
+  transition: box-shadow 0.2s ease-in-out;
+}
+
+.tile-rnd-container:hover {
+  box-shadow: 0 10px 25px rgba(0, 0, 0, 0.15);
+}
+
+/* Custom resize handle styling */
+.react-rnd-resize-handle {
+  background: rgba(59, 130, 246, 0.1);
+  border: 1px solid rgba(59, 130, 246, 0.3);
+  border-radius: 2px;
+}
+
+.react-rnd-resize-handle:hover {
+  background: rgba(59, 130, 246, 0.2);
+  border-color: rgba(59, 130, 246, 0.5);
+}
+
+/* Ensure tiles don't interfere with each other */
+.tile-rnd-container {
+  z-index: 1;
+}
+
+.tile-rnd-container:hover {
+  z-index: 10;
+}
+
+.tile-rnd-container:active {
+  z-index: 20;
+}
+
+/* Responsive grid adjustments */
+@media (max-width: 768px) {
+  .grid-tile {
+    @apply min-h-[250px];
+  }
+}
+
+@media (min-width: 1024px) {
+  .grid-tile {
+    @apply min-h-[350px];
+  }
+}
